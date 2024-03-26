@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Implement interface for reading and writing to the internal flash memory and an example for demonstration.
 - PWM output on complementary channels only for single channel timers (TIM16 + TIM17)
 - Types for Microseconds, Milliseconds and Seconds in time.rs
+- impl embedded_hal_1::i2c::I2c for I2c
 
 ### Fixed
 

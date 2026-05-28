@@ -150,6 +150,7 @@ pub enum Error {
     OVERRUN,
     NACK,
     BUS,
+    TIMEOUT,
 }
 
 macro_rules! i2c {
@@ -248,6 +249,16 @@ where
                 .bits(scll)
         });
 
+        // SCL low timeout ~25ms at 8MHz: (97+1)*2048/8_000_000
+        self.i2c.timeoutr.write(|w| {
+            w.timeouta()
+                .bits(97)
+                .tidle()
+                .disabled()
+                .timouten()
+                .enabled()
+        });
+
         // Enable the I2C processing
         self.i2c.cr1.modify(|_, w| w.pe().set_bit());
 
@@ -279,6 +290,12 @@ where
                 .icr
                 .write(|w| w.stopcf().set_bit().nackcf().set_bit());
             return Err(Error::NACK);
+        }
+
+        // If the SCL low timeout fired, the hardware has already issued a STOP
+        if isr.timeout().is_timeout() {
+            self.i2c.icr.write(|w| w.timoutcf().clear());
+            return Err(Error::TIMEOUT);
         }
 
         Ok(())
@@ -522,6 +539,7 @@ impl embedded_hal_1::i2c::Error for Error {
                 embedded_hal_1::i2c::NoAcknowledgeSource::Unknown,
             ),
             Error::BUS => embedded_hal_1::i2c::ErrorKind::Bus,
+            Error::TIMEOUT => embedded_hal_1::i2c::ErrorKind::Other,
         }
     }
 }
